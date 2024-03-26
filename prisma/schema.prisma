@@ -1,0 +1,70 @@
+// This is your Prisma schema file
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "@prisma/client"
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
+  engineType    = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ScenarioType {
+  FIXED
+  TEMPORARY
+}
+
+enum RouteMethod {
+  POST
+  GET
+  PUT
+  PATCH
+  DELETE
+}
+
+model Routes {
+  id              Int          @id @default(autoincrement())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
+  path            String
+  method          RouteMethod
+  configuration   Json
+  proxy_domains   ProxyDomains @relation(fields: [proxy_domain_id], references: [id])
+  proxy_domain_id Int
+
+  @@unique([path, method])
+  @@index(path)
+}
+
+model ProxyDomains {
+  id        Int      @id @default(autoincrement())
+  domain    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  routes    Routes[]
+}
+
+model Scenarios {
+  id         Int          @id @default(autoincrement())
+  name       String
+  variables  Json
+  attributes Json         @default("{}")
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @default(now()) @updatedAt
+  type       ScenarioType @default(FIXED)
+  mock       Mocks        @relation(fields: [name], references: [scenario_name])
+
+  @@index(name)
+}
+
+model Mocks {
+  id            Int         @id @default(autoincrement())
+  body          Json
+  headers       Json
+  scenario_name String      @unique
+  scenarios     Scenarios[]
+}
